@@ -36,3 +36,5 @@ Example output:
 ```
 
 ### Team management endpoints planned.
+
+Note: All endpoints marked with `[Authenticated]` require an `Authorization: Bearer` header. Example: `curl -H "Authorization: Bearer myToken" ...`
