@@ -7,24 +7,19 @@ use std::{
 use actix_files::Files;
 use actix_multipart::Multipart;
 use actix_web::{
-    dev::ServiceRequest,
-    error, get,
-    middleware::Logger,
-    post, put,
-    web::{block, Data, Path},
-    App, Error, HttpResponse, HttpServer, Responder,
+    delete, dev::ServiceRequest, error, get, middleware::Logger, post, put, web::{block, Data, Path}, App, Error, HttpResponse, HttpServer, Responder
 };
 use actix_web_httpauth::{extractors::bearer::BearerAuth, middleware::HttpAuthentication};
 use futures::TryStreamExt;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 struct Player {
     pub uuid: String,
     pub score: u16,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 struct Team {
     pub name: String,
     pub total_score: u16,
@@ -141,7 +136,6 @@ async fn upload_pack(
     mut form: Multipart,
 ) -> Result<impl Responder, actix_web::Error> {
     let name = path.into_inner();
-    println!("hello");
 
     while let Some(mut field) = form.try_next().await? {
         let path = format!("./packs/{}", name.clone());
@@ -154,6 +148,56 @@ async fn upload_pack(
     }
 
     Ok(HttpResponse::Ok().finish())
+}
+
+#[put("/teams/{team}/{uuid}")]
+async fn put_member(path: Path<(String, String)>, data: Data<ApiState>) -> impl Responder {
+    let (team_name, uuid) = path.into_inner();
+    {
+        let mut teams = data.teams.lock().unwrap();
+        for team in &mut *teams {
+            if team.name != team_name {
+                continue
+            }
+            team.players.push(Player { uuid: uuid.clone(), score: 0 })
+        }
+    }
+    
+    let config: ApiConfig = data.clone().into();
+    let json = serde_json::to_string_pretty(&config).unwrap();
+    fs::write("./config.json", json).unwrap();
+
+    HttpResponse::Ok().json(&*data.teams)
+}
+
+#[delete("/teams/{team}/{uuid}")]
+async fn remove_member(path: Path<(String, String)>, data: Data<ApiState>) -> impl Responder {
+    let (team_name, uuid) = path.into_inner();
+    {
+        let mut teams = data.teams.lock().unwrap();
+        for team in &mut *teams {
+            if team.name != team_name {
+                continue
+            }
+            
+            let players = &mut *team.players.clone();
+            for player in players {
+                if player.uuid != uuid {
+                    continue
+                }
+                
+                let position = team.players.clone().iter().position(|value| *value.uuid == uuid).unwrap();
+                
+                team.players.remove(position.clone());
+            }
+        }
+    }
+    
+    let config: ApiConfig = data.clone().into();
+    let json = serde_json::to_string_pretty(&config).unwrap();
+    fs::write("./config.json", json).unwrap();
+
+    HttpResponse::Ok().json(&*data.teams)
 }
 
 #[get("/")]
@@ -182,6 +226,8 @@ async fn main() -> io::Result<()> {
             .service(player_score)
             .service(Files::new("/packs", "./packs").show_files_listing())
             .service(upload_pack)
+            .service(put_member)
+            .service(remove_member)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
