@@ -1,0 +1,8 @@
+services:
+  api:
+    build: .
+    ports:
+      - 3000:8080
+    volumes:
+      - ./config.json:/usr/src/api/config.json
+      - ./packs:/usr/src/api/packs

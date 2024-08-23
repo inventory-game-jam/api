@@ -229,7 +229,7 @@ async fn main() -> io::Result<()> {
             .service(put_member)
             .service(remove_member)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 3000))?
     .run()
     .await
 }
