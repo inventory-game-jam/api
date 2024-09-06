@@ -24,6 +24,7 @@ struct Team {
     pub name: String,
     pub total_score: u16,
     pub players: Vec<Player>,
+    pub icon: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

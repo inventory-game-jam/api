@@ -41,7 +41,7 @@ Returns all the team scores.
 Example output:
 
 ```json
-[{"name":"team1","total_score":0,"players":[{"uuid":"454c9909-7092-4e6b-bd65-f799099b1ab1","score":0}]}]
+[{"name":"team1","total_score":0,"players":[{"uuid":"454c9909-7092-4e6b-bd65-f799099b1ab1","score":0}],icon:"\uE000"}]
 ```
 
 ### PUT /teams/{team_name}/{uuid} [Authenticated]
